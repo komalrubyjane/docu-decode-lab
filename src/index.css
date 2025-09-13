@@ -2,41 +2,69 @@
 @tailwind components;
 @tailwind utilities;
 
-/* Definition of the design system. All colors, gradients, fonts, etc should be defined here. 
-All colors MUST be HSL.
-*/
+/* Legal Document Simulator Design System */
 
 @layer base {
   :root {
-    --background: 0 0% 100%;
-    --foreground: 222.2 84% 4.9%;
+    /* Legal Professional Color Palette */
+    --background: 0 0% 99%;
+    --foreground: 220 15% 15%;
 
     --card: 0 0% 100%;
-    --card-foreground: 222.2 84% 4.9%;
+    --card-foreground: 220 15% 15%;
 
     --popover: 0 0% 100%;
-    --popover-foreground: 222.2 84% 4.9%;
+    --popover-foreground: 220 15% 15%;
 
-    --primary: 222.2 47.4% 11.2%;
-    --primary-foreground: 210 40% 98%;
+    /* Legal Authority Navy */
+    --primary: 220 60% 15%;
+    --primary-foreground: 0 0% 98%;
+    --primary-light: 220 50% 25%;
 
-    --secondary: 210 40% 96.1%;
-    --secondary-foreground: 222.2 47.4% 11.2%;
+    /* Legal Gold Accents */
+    --secondary: 45 85% 55%;
+    --secondary-foreground: 220 60% 15%;
+    --secondary-light: 45 85% 65%;
 
-    --muted: 210 40% 96.1%;
-    --muted-foreground: 215.4 16.3% 46.9%;
+    /* Trust & Reliability */
+    --muted: 220 15% 96%;
+    --muted-foreground: 220 10% 45%;
 
-    --accent: 210 40% 96.1%;
-    --accent-foreground: 222.2 47.4% 11.2%;
+    --accent: 220 20% 92%;
+    --accent-foreground: 220 60% 15%;
 
-    --destructive: 0 84.2% 60.2%;
-    --destructive-foreground: 210 40% 98%;
+    /* Alert & Warning Colors */
+    --destructive: 0 75% 55%;
+    --destructive-foreground: 0 0% 98%;
+    --warning: 35 85% 60%;
+    --warning-foreground: 220 60% 15%;
+    --success: 140 50% 45%;
+    --success-foreground: 0 0% 98%;
 
-    --border: 214.3 31.8% 91.4%;
-    --input: 214.3 31.8% 91.4%;
-    --ring: 222.2 84% 4.9%;
+    --border: 220 15% 90%;
+    --input: 220 15% 95%;
+    --ring: 220 60% 15%;
 
-    --radius: 0.5rem;
+    --radius: 0.75rem;
+
+    /* Legal Document Specific Colors */
+    --clause-highlight: 45 85% 55% / 0.2;
+    --important-clause: 0 75% 55% / 0.15;
+    --explanation-bg: 220 50% 98%;
+    
+    /* Gradients */
+    --gradient-legal: linear-gradient(135deg, hsl(220 60% 15%), hsl(220 50% 25%));
+    --gradient-accent: linear-gradient(135deg, hsl(45 85% 55%), hsl(45 85% 65%));
+    --gradient-hero: linear-gradient(135deg, hsl(220 60% 15%) 0%, hsl(220 50% 25%) 50%, hsl(45 85% 55%) 100%);
+    
+    /* Shadows */
+    --shadow-legal: 0 10px 30px -10px hsl(220 60% 15% / 0.2);
+    --shadow-card: 0 4px 12px -2px hsl(220 15% 15% / 0.1);
+    --shadow-highlight: 0 0 0 2px hsl(45 85% 55% / 0.3);
+    
+    /* Animations */
+    --transition-smooth: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    --transition-bounce: all 0.5s cubic-bezier(0.68, -0.55, 0.265, 1.55);
 
     --sidebar-background: 0 0% 98%;
 
@@ -100,6 +128,80 @@ All colors MUST be HSL.
   }
 
   body {
-    @apply bg-background text-foreground;
+    @apply bg-background text-foreground font-sans antialiased;
+  }
+}
+
+@layer components {
+  /* Legal Specific Animations */
+  .clause-highlight {
+    @apply relative;
+    background: hsl(var(--clause-highlight));
+    transition: var(--transition-smooth);
+  }
+  
+  .clause-highlight::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: hsl(var(--secondary) / 0.1);
+    transform: scaleX(0);
+    transform-origin: left;
+    transition: var(--transition-smooth);
+  }
+  
+  .clause-highlight:hover::before {
+    transform: scaleX(1);
+  }
+  
+  .legal-gradient {
+    background: var(--gradient-legal);
+  }
+  
+  .accent-gradient {
+    background: var(--gradient-accent);
+  }
+  
+  .hero-gradient {
+    background: var(--gradient-hero);
+  }
+  
+  .legal-shadow {
+    box-shadow: var(--shadow-legal);
+  }
+  
+  .card-shadow {
+    box-shadow: var(--shadow-card);
+  }
+  
+  .highlight-shadow {
+    box-shadow: var(--shadow-highlight);
+  }
+  
+  .smooth-transition {
+    transition: var(--transition-smooth);
+  }
+  
+  .bounce-transition {
+    transition: var(--transition-bounce);
+  }
+  
+  /* Legal Document Specific Styles */
+  .legal-heading {
+    @apply text-primary font-bold tracking-tight;
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+  }
+  
+  .clause-text {
+    @apply text-muted-foreground leading-relaxed;
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+  }
+  
+  .explanation-panel {
+    background: hsl(var(--explanation-bg));
+    @apply border-l-4 border-secondary p-4 rounded-r-lg;
   }
 }
