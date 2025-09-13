@@ -1,17 +1,23 @@
+import { useState } from "react";
 import { HeroSection } from "@/components/HeroSection";
 import { FeatureSection } from "@/components/FeatureSection";
 import { DocumentUpload } from "@/components/DocumentUpload";
 import { DocumentViewer } from "@/components/DocumentViewer";
 import { ScenarioSimulator } from "@/components/ScenarioSimulator";
+import { AuthProvider } from "@/hooks/useAuth";
+import { Toaster } from "@/components/ui/toaster";
 
 const Index = () => {
+  const [currentAnalysisId, setCurrentAnalysisId] = useState<string | undefined>();
+
   return (
-    <div className="min-h-screen">
-      <HeroSection />
-      <FeatureSection />
-      <DocumentUpload />
-      <DocumentViewer />
-      <ScenarioSimulator />
+    <AuthProvider>
+      <div className="min-h-screen">
+        <HeroSection />
+        <FeatureSection />
+        <DocumentUpload onAnalysisComplete={setCurrentAnalysisId} />
+        <DocumentViewer analysisId={currentAnalysisId} />
+        <ScenarioSimulator />
       
       {/* Footer */}
       <footer className="bg-primary text-primary-foreground py-12">
@@ -37,7 +43,9 @@ const Index = () => {
           </div>
         </div>
       </footer>
-    </div>
+        <Toaster />
+      </div>
+    </AuthProvider>
   );
 };
 

@@ -14,7 +14,89 @@ export type Database = {
   }
   public: {
     Tables: {
-      [_ in never]: never
+      document_analyses: {
+        Row: {
+          analysis_date: string
+          created_at: string
+          document_id: string
+          id: string
+          key_clauses: Json
+          original_content: string
+          risk_assessment: Json
+          simplified_summary: string
+          updated_at: string
+        }
+        Insert: {
+          analysis_date?: string
+          created_at?: string
+          document_id: string
+          id?: string
+          key_clauses?: Json
+          original_content: string
+          risk_assessment?: Json
+          simplified_summary: string
+          updated_at?: string
+        }
+        Update: {
+          analysis_date?: string
+          created_at?: string
+          document_id?: string
+          id?: string
+          key_clauses?: Json
+          original_content?: string
+          risk_assessment?: Json
+          simplified_summary?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "document_analyses_document_id_fkey"
+            columns: ["document_id"]
+            isOneToOne: false
+            referencedRelation: "documents"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      documents: {
+        Row: {
+          created_at: string
+          file_path: string
+          file_size: number
+          filename: string
+          id: string
+          mime_type: string
+          processing_status: string
+          updated_at: string
+          upload_date: string
+          user_id: string | null
+        }
+        Insert: {
+          created_at?: string
+          file_path: string
+          file_size: number
+          filename: string
+          id?: string
+          mime_type: string
+          processing_status?: string
+          updated_at?: string
+          upload_date?: string
+          user_id?: string | null
+        }
+        Update: {
+          created_at?: string
+          file_path?: string
+          file_size?: number
+          filename?: string
+          id?: string
+          mime_type?: string
+          processing_status?: string
+          updated_at?: string
+          upload_date?: string
+          user_id?: string | null
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never

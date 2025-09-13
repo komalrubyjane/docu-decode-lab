@@ -1,15 +1,50 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { AlertTriangle, Info, CheckCircle, HelpCircle, BookOpen, Lightbulb } from "lucide-react";
+import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "@/hooks/useAuth";
 
-export const DocumentViewer = () => {
+interface DocumentViewerProps {
+  analysisId?: string;
+}
+
+export const DocumentViewer = ({ analysisId }: DocumentViewerProps) => {
   const [selectedClause, setSelectedClause] = useState<number | null>(null);
   const [highlightedTerms, setHighlightedTerms] = useState<string[]>([]);
+  const [analysis, setAnalysis] = useState<any>(null);
+  const [loading, setLoading] = useState(false);
+  const { user } = useAuth();
 
-  const documentContent = [
+  useEffect(() => {
+    if (analysisId) {
+      loadAnalysis();
+    }
+  }, [analysisId]);
+
+  const loadAnalysis = async () => {
+    if (!analysisId) return;
+    
+    setLoading(true);
+    try {
+      const { data, error } = await supabase
+        .from('document_analyses')
+        .select('*')
+        .eq('id', analysisId)
+        .single();
+
+      if (error) throw error;
+      setAnalysis(data);
+    } catch (error) {
+      console.error('Error loading analysis:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const documentContent = analysis?.key_clauses || [
     {
       id: 1,
       type: "title",
@@ -30,7 +65,7 @@ export const DocumentViewer = () => {
       content: "Employee agrees to work exclusively for Company and shall not engage in any other employment, consulting, or business activities without prior written consent from Company.",
       risk: "high",
       explanation: "⚠️ IMPORTANT: This clause restricts your ability to work elsewhere or start side businesses. You need written permission for any other work activities.",
-      keyTerms: ["exclusively", "written consent"]
+      key_terms: ["exclusively", "written consent"]
     },
     {
       id: 4,
@@ -38,7 +73,7 @@ export const DocumentViewer = () => {
       content: "Company may terminate this agreement at any time, with or without cause, upon thirty (30) days written notice to Employee.",
       risk: "medium",
       explanation: "This means your employer can fire you for any reason (or no reason) with just 30 days notice. This is called 'at-will employment'.",
-      keyTerms: ["terminate", "without cause"]
+      key_terms: ["terminate", "without cause"]
     },
     {
       id: 5,
@@ -46,7 +81,7 @@ export const DocumentViewer = () => {
       content: "All inventions, discoveries, and improvements made by Employee during employment shall be the exclusive property of Company.",
       risk: "high",
       explanation: "⚠️ CRITICAL: Anything you create while employed belongs to the company, even if done on your own time. This could include personal projects!",
-      keyTerms: ["inventions", "exclusive property"]
+      key_terms: ["inventions", "exclusive property"]
     }
   ];
 
@@ -62,6 +97,29 @@ export const DocumentViewer = () => {
     high: <AlertTriangle className="w-4 h-4" />
   };
 
+  if (loading) {
+    return (
+      <section className="py-20 bg-muted">
+        <div className="max-w-4xl mx-auto px-6 text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-secondary mx-auto mb-4"></div>
+          <p className="clause-text">Loading document analysis...</p>
+        </div>
+      </section>
+    );
+  }
+
+  if (!analysis && !analysisId) {
+    return (
+      <section className="py-20 bg-muted">
+        <div className="max-w-4xl mx-auto px-6 text-center">
+          <Info className="w-16 h-16 text-muted-foreground mx-auto mb-4" />
+          <h3 className="legal-heading text-2xl mb-4">No Document Analyzed</h3>
+          <p className="clause-text">Upload and analyze a document to see the interactive analysis here.</p>
+        </div>
+      </section>
+    );
+  }
+
   return (
     <section className="py-20 bg-muted">
       <div className="max-w-7xl mx-auto px-6">
@@ -72,6 +130,12 @@ export const DocumentViewer = () => {
           <p className="clause-text text-xl">
             Click on any clause to see detailed explanations and understand your rights.
           </p>
+          {analysis && (
+            <div className="mt-6 p-4 bg-background rounded-lg border max-w-4xl mx-auto">
+              <h3 className="legal-heading text-lg mb-2">Document Summary</h3>
+              <p className="clause-text text-sm">{analysis.simplified_summary}</p>
+            </div>
+          )}
         </div>
 
         <div className="grid lg:grid-cols-3 gap-8">
@@ -80,7 +144,9 @@ export const DocumentViewer = () => {
             <Card className="card-shadow">
               <CardHeader>
                 <div className="flex items-center justify-between">
-                  <CardTitle className="legal-heading text-2xl">Sample Employment Contract</CardTitle>
+                  <CardTitle className="legal-heading text-2xl">
+                    {analysis ? 'Your Document Analysis' : 'Sample Employment Contract'}
+                  </CardTitle>
                   <Badge variant="outline" className="text-secondary border-secondary">
                     AI Analyzed
                   </Badge>
@@ -147,11 +213,11 @@ export const DocumentViewer = () => {
                           {clause.explanation}
                         </p>
                         
-                        {clause.keyTerms && (
+                        {(clause.key_terms || clause.keyTerms) && (
                           <div>
                             <h4 className="legal-heading text-sm mb-2">Key Terms:</h4>
                             <div className="flex flex-wrap gap-2">
-                              {clause.keyTerms.map((term, index) => (
+                              {(clause.key_terms || clause.keyTerms || []).map((term: string, index: number) => (
                                 <Badge key={index} variant="outline" className="text-xs">
                                   {term}
                                 </Badge>

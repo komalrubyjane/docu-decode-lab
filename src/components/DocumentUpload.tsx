@@ -3,11 +3,21 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Upload, FileText, CheckCircle, AlertCircle } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { useAuth } from "@/hooks/useAuth";
+import { AuthModal } from "@/components/AuthModal";
+import { supabase } from "@/integrations/supabase/client";
+import { useToast } from "@/hooks/use-toast";
 
-export const DocumentUpload = () => {
+interface DocumentUploadProps {
+  onAnalysisComplete?: (analysisId: string) => void;
+}
+
+export const DocumentUpload = ({ onAnalysisComplete }: DocumentUploadProps) => {
   const [dragActive, setDragActive] = useState(false);
   const [uploadedFile, setUploadedFile] = useState<File | null>(null);
   const [analyzing, setAnalyzing] = useState(false);
+  const { user } = useAuth();
+  const { toast } = useToast();
 
   const handleDrag = (e: React.DragEvent) => {
     e.preventDefault();
@@ -35,12 +45,68 @@ export const DocumentUpload = () => {
     }
   };
 
-  const startAnalysis = () => {
+  const startAnalysis = async () => {
+    if (!user || !uploadedFile) return;
+
     setAnalyzing(true);
-    // Simulate analysis process
-    setTimeout(() => {
+    try {
+      // Upload file to Supabase Storage
+      const fileExt = uploadedFile.name.split('.').pop();
+      const fileName = `${user.id}/${Date.now()}.${fileExt}`;
+      
+      const { data: uploadData, error: uploadError } = await supabase.storage
+        .from('documents')
+        .upload(fileName, uploadedFile);
+
+      if (uploadError) throw uploadError;
+
+      // Create document record
+      const { data: documentData, error: documentError } = await supabase
+        .from('documents')
+        .insert({
+          user_id: user.id,
+          filename: uploadedFile.name,
+          file_path: uploadData.path,
+          file_size: uploadedFile.size,
+          mime_type: uploadedFile.type,
+        })
+        .select()
+        .single();
+
+      if (documentError) throw documentError;
+
+      // Read file content for analysis
+      const fileContent = await uploadedFile.text();
+
+      // Call analysis function
+      const { data: analysisResponse, error: analysisError } = await supabase.functions
+        .invoke('analyze-document', {
+          body: {
+            documentId: documentData.id,
+            content: fileContent
+          }
+        });
+
+      if (analysisError) throw analysisError;
+
+      if (analysisResponse.success) {
+        toast({
+          title: "Document analyzed successfully!",
+          description: "Your document has been processed and is ready for review.",
+        });
+        onAnalysisComplete?.(analysisResponse.analysis.id);
+      }
+
+    } catch (error: any) {
+      console.error('Analysis error:', error);
+      toast({
+        title: "Analysis failed",
+        description: error.message || "Failed to analyze document. Please try again.",
+        variant: "destructive",
+      });
+    } finally {
       setAnalyzing(false);
-    }, 3000);
+    }
   };
 
   const sampleDocuments = [
@@ -114,14 +180,22 @@ export const DocumentUpload = () => {
                   </div>
                   
                   <div className="flex gap-2">
-                    <Button 
-                      variant="legal" 
-                      className="flex-1" 
-                      onClick={startAnalysis}
-                      disabled={analyzing}
-                    >
-                      {analyzing ? "Analyzing..." : "Analyze Document"}
-                    </Button>
+                    {user ? (
+                      <Button 
+                        variant="legal" 
+                        className="flex-1" 
+                        onClick={startAnalysis}
+                        disabled={analyzing}
+                      >
+                        {analyzing ? "Analyzing..." : "Analyze Document"}
+                      </Button>
+                    ) : (
+                      <AuthModal>
+                        <Button variant="legal" className="flex-1">
+                          Sign In to Analyze
+                        </Button>
+                      </AuthModal>
+                    )}
                     <Button 
                       variant="outline" 
                       onClick={() => setUploadedFile(null)}
