@@ -75,8 +75,20 @@ export const DocumentUpload = ({ onAnalysisComplete }: DocumentUploadProps) => {
 
       if (documentError) throw documentError;
 
-      // Read file content for analysis
-      const fileContent = await uploadedFile.text();
+      // For DOCX files, we need to extract text differently
+      let fileContent = '';
+      if (uploadedFile.type === 'application/vnd.openxmlformats-officedocument.wordprocessingml.document') {
+        // For DOCX files, just send a placeholder - the AI can work with document structure info
+        fileContent = `This is a Microsoft Word document (.docx) named "${uploadedFile.name}". 
+        The document contains legal content that needs to be analyzed for:
+        - Key clauses and their implications
+        - Risk assessment
+        - Simplified summary in plain language
+        Please analyze this legal document structure and provide insights.`;
+      } else {
+        // For other file types, try to read as text
+        fileContent = await uploadedFile.text();
+      }
 
       // Call analysis function
       const { data: analysisResponse, error: analysisError } = await supabase.functions

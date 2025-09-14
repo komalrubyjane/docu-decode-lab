@@ -146,16 +146,20 @@ Respond in JSON format:
 
     // Update document status to failed if documentId exists
     try {
-      const { documentId } = await req.json();
-      if (documentId) {
-        const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
-        const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
-        const supabase = createClient(supabaseUrl, supabaseServiceKey);
+      if (req.method === 'POST') {
+        const requestBody = await req.clone().json();
+        const documentId = requestBody?.documentId;
         
-        await supabase
-          .from('documents')
-          .update({ processing_status: 'failed' })
-          .eq('id', documentId);
+        if (documentId) {
+          const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
+          const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
+          const supabase = createClient(supabaseUrl, supabaseServiceKey);
+          
+          await supabase
+            .from('documents')
+            .update({ processing_status: 'failed' })
+            .eq('id', documentId);
+        }
       }
     } catch (e) {
       console.error('Failed to update document status:', e);
