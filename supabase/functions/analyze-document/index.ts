@@ -14,12 +14,12 @@ serve(async (req) => {
   }
 
   try {
-    const openAIApiKey = Deno.env.get('OPENAI_API_KEY');
+    const groqApiKey = Deno.env.get('OPENAI_API_KEY'); // Using same env var name for simplicity
     const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
     const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
 
-    if (!openAIApiKey) {
-      throw new Error('OpenAI API key not configured');
+    if (!groqApiKey) {
+      throw new Error('Groq API key not configured');
     }
 
     const supabase = createClient(supabaseUrl, supabaseServiceKey, {
@@ -35,7 +35,7 @@ serve(async (req) => {
       .update({ processing_status: 'processing' })
       .eq('id', documentId);
 
-    // Analyze document with OpenAI
+    // Analyze document with Groq
     const analysisPrompt = `
 You are a legal document expert. Analyze the following legal document and provide:
 
@@ -73,14 +73,14 @@ Respond in JSON format:
 }
 `;
 
-    const response = await fetch('https://api.openai.com/v1/chat/completions', {
+    const response = await fetch('https://api.groq.com/openai/v1/chat/completions', {
       method: 'POST',
       headers: {
-        'Authorization': `Bearer ${openAIApiKey}`,
+        'Authorization': `Bearer ${groqApiKey}`,
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        model: 'gpt-4.1-2025-04-14',
+        model: 'llama-3.3-70b-versatile',
         messages: [
           { 
             role: 'system', 
@@ -94,11 +94,11 @@ Respond in JSON format:
     });
 
     if (!response.ok) {
-      throw new Error(`OpenAI API error: ${response.statusText}`);
+      throw new Error(`Groq API error: ${response.statusText}`);
     }
 
     const aiResponse = await response.json();
-    console.log('OpenAI response received');
+    console.log('Groq response received');
 
     let analysisResult;
     try {
