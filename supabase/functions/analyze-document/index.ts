@@ -47,7 +47,7 @@ You are a legal document expert. Analyze the following legal document and provid
 Document content:
 ${content}
 
-Respond in JSON format:
+Respond ONLY with valid JSON in this exact format (no markdown, no backticks, no additional text):
 {
   "simplified_summary": "Plain language summary...",
   "risk_assessment": {
@@ -73,39 +73,78 @@ Respond in JSON format:
 }
 `;
 
-    const response = await fetch('https://api.groq.com/openai/v1/chat/completions', {
-      method: 'POST',
-      headers: {
-        'Authorization': `Bearer ${groqApiKey}`,
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        model: 'llama-3.3-70b-versatile',
-        messages: [
-          { 
-            role: 'system', 
-            content: 'You are a legal expert who explains complex legal documents in simple terms. Always respond with valid JSON only.' 
+    // Retry logic for rate limits
+    let retries = 3;
+    let response;
+    
+    while (retries > 0) {
+      try {
+        console.log(`Attempting Groq API call (${4 - retries}/3)`);
+        
+        response = await fetch('https://api.groq.com/openai/v1/chat/completions', {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${groqApiKey}`,
+            'Content-Type': 'application/json',
           },
-          { role: 'user', content: analysisPrompt }
-        ],
-        max_tokens: 4000,
-        temperature: 0.3,
-      }),
-    });
+          body: JSON.stringify({
+            model: 'llama-3.1-8b-instant',
+            messages: [
+              { 
+                role: 'system', 
+                content: 'You are a legal expert who explains complex legal documents in simple terms. Always respond with valid JSON only, no markdown formatting.' 
+              },
+              { role: 'user', content: analysisPrompt }
+            ],
+            max_tokens: 2000,
+            temperature: 0.1,
+          }),
+        });
 
-    if (!response.ok) {
-      throw new Error(`Groq API error: ${response.statusText}`);
+        if (response.ok) {
+          console.log('Groq API call successful');
+          break;
+        } else if (response.status === 429) {
+          console.log(`Rate limited, retrying in ${(4 - retries) * 2} seconds...`);
+          await new Promise(resolve => setTimeout(resolve, (4 - retries) * 2000));
+          retries--;
+        } else {
+          throw new Error(`Groq API error: ${response.status} ${response.statusText}`);
+        }
+      } catch (error) {
+        console.error(`API attempt failed:`, error);
+        retries--;
+        if (retries === 0) throw error;
+        await new Promise(resolve => setTimeout(resolve, 1000));
+      }
+    }
+
+    if (!response || !response.ok) {
+      throw new Error('Failed to get response from Groq API after retries');
     }
 
     const aiResponse = await response.json();
-    console.log('Groq response received');
+    console.log('Groq response received:', JSON.stringify(aiResponse, null, 2));
+
+    if (!aiResponse.choices || !aiResponse.choices[0] || !aiResponse.choices[0].message) {
+      throw new Error('Invalid Groq API response structure');
+    }
 
     let analysisResult;
     try {
-      analysisResult = JSON.parse(aiResponse.choices[0].message.content);
+      const responseContent = aiResponse.choices[0].message.content.trim();
+      console.log('Raw AI response content:', responseContent);
+      
+      // Remove any markdown formatting if present
+      const cleanContent = responseContent.replace(/```json\n?|\n?```/g, '').trim();
+      console.log('Cleaned content:', cleanContent);
+      
+      analysisResult = JSON.parse(cleanContent);
+      console.log('Parsed analysis result:', JSON.stringify(analysisResult, null, 2));
     } catch (e) {
       console.error('Failed to parse AI response:', e);
-      throw new Error('Invalid AI response format');
+      console.error('Response content was:', aiResponse.choices[0].message.content);
+      throw new Error(`Invalid AI response format: ${e.message}`);
     }
 
     // Store analysis in database
