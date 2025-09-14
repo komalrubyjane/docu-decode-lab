@@ -69,8 +69,8 @@ export const FeatureSection = () => {
                       // Navigate to document upload
                       document.getElementById('upload')?.scrollIntoView({ behavior: 'smooth' });
                     } else if (index === 1) {
-                      // Navigate to scenario simulator for learning
-                      document.getElementById('simulator')?.scrollIntoView({ behavior: 'smooth' });
+                      // Navigate to document analysis for learning
+                      document.getElementById('analysis')?.scrollIntoView({ behavior: 'smooth' });
                     } else {
                       // Navigate to scenario simulator
                       document.getElementById('simulator')?.scrollIntoView({ behavior: 'smooth' });

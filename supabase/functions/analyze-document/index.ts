@@ -26,14 +26,102 @@ serve(async (req) => {
       auth: { persistSession: false }
     });
 
-    const { documentId, content } = await req.json();
-    console.log('Analyzing document:', documentId);
+    const { documentId, content, action } = await req.json();
+    console.log('Analyzing document:', documentId, 'Action:', action);
 
     // Update document status to processing
     await supabase
       .from('documents')
       .update({ processing_status: 'processing' })
       .eq('id', documentId);
+
+    // Handle different actions
+    if (action === 'generate_summary') {
+      // Generate enhanced summary
+      const summaryPrompt = `
+You are a legal document expert. Generate a comprehensive, detailed summary of the following legal document in plain language:
+
+Document content:
+${content}
+
+Provide a detailed summary that includes:
+1. Document type and purpose
+2. Key parties involved
+3. Main terms and conditions
+4. Important deadlines or timeframes
+5. Rights and obligations of each party
+6. Potential risks or concerns
+7. Recommendations for the reader
+
+Respond ONLY with valid JSON in this exact format (no markdown, no backticks, no additional text):
+{
+  "enhanced_summary": "Detailed summary in plain language...",
+  "document_type": "Contract/Agreement/Policy/etc",
+  "key_parties": ["Party 1", "Party 2"],
+  "main_terms": ["Term 1", "Term 2", "Term 3"],
+  "deadlines": ["Deadline 1", "Deadline 2"],
+  "risks": ["Risk 1", "Risk 2"],
+  "recommendations": ["Recommendation 1", "Recommendation 2"]
+}
+`;
+
+      // Call Groq API for enhanced summary
+      const summaryResponse = await fetch('https://api.groq.com/openai/v1/chat/completions', {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${groqApiKey}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          model: 'llama-3.1-8b-instant',
+          messages: [
+            { 
+              role: 'system', 
+              content: 'You are a legal expert who creates detailed, comprehensive summaries of legal documents. Always respond with valid JSON only, no markdown formatting.' 
+            },
+            { role: 'user', content: summaryPrompt }
+          ],
+          max_tokens: 2000,
+          temperature: 0.1,
+        }),
+      });
+
+      if (!summaryResponse.ok) {
+        throw new Error(`Groq API error: ${summaryResponse.status} ${summaryResponse.statusText}`);
+      }
+
+      const summaryData = await summaryResponse.json();
+      const summaryResult = JSON.parse(summaryData.choices[0].message.content.trim());
+
+      // Update the existing analysis with enhanced summary
+      const { data: analysisData, error: analysisError } = await supabase
+        .from('document_analyses')
+        .update({
+          simplified_summary: summaryResult.enhanced_summary,
+          updated_at: new Date().toISOString()
+        })
+        .eq('document_id', documentId)
+        .select()
+        .single();
+
+      if (analysisError) {
+        throw analysisError;
+      }
+
+      // Update document status to completed
+      await supabase
+        .from('documents')
+        .update({ processing_status: 'completed' })
+        .eq('id', documentId);
+
+      return new Response(JSON.stringify({
+        success: true,
+        analysis: analysisData,
+        enhanced_summary: summaryResult
+      }), {
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
+    }
 
     // Analyze document with Groq
     const analysisPrompt = `

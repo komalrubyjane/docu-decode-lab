@@ -1,9 +1,14 @@
-import { useState } from "react";
+import React, { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
-import { AlertTriangle, CheckCircle, ArrowRight, RotateCcw, TreePine } from "lucide-react";
+import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
+import { Label } from "@/components/ui/label";
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { AlertTriangle, CheckCircle, ArrowRight, RotateCcw, TreePine, Plus, Edit, Trash2 } from "lucide-react";
+import { useToast } from "@/hooks/use-toast";
 
 interface ScenarioChoice {
   id: string;
@@ -26,6 +31,36 @@ export const ScenarioSimulator = () => {
   const [selectedChoice, setSelectedChoice] = useState<string | null>(null);
   const [showResult, setShowResult] = useState(false);
   const [scenarioProgress, setScenarioProgress] = useState(0);
+  const [customScenarios, setCustomScenarios] = useState<Record<string, Scenario>>(() => {
+    // Load custom scenarios from localStorage on component mount
+    if (typeof window !== 'undefined') {
+      const saved = localStorage.getItem('customScenarios');
+      return saved ? JSON.parse(saved) : {};
+    }
+    return {};
+  });
+  const [isCreatingScenario, setIsCreatingScenario] = useState(false);
+  const [editingScenario, setEditingScenario] = useState<string | null>(null);
+  const [newScenario, setNewScenario] = useState<Partial<Scenario>>({
+    title: '',
+    description: '',
+    situation: '',
+    choices: []
+  });
+  const [newChoice, setNewChoice] = useState<Partial<ScenarioChoice>>({
+    text: '',
+    consequence: '',
+    risk: 'low',
+    impact: ''
+  });
+  const { toast } = useToast();
+
+  // Save custom scenarios to localStorage whenever they change
+  React.useEffect(() => {
+    if (typeof window !== 'undefined') {
+      localStorage.setItem('customScenarios', JSON.stringify(customScenarios));
+    }
+  }, [customScenarios]);
 
   const scenarios: Record<string, Scenario> = {
     employment: {
@@ -102,7 +137,8 @@ export const ScenarioSimulator = () => {
     }
   };
 
-  const scenario = scenarios[currentScenario];
+  const allScenarios = { ...scenarios, ...customScenarios };
+  const scenario = allScenarios[currentScenario];
 
   const handleChoiceSelect = (choiceId: string) => {
     setSelectedChoice(choiceId);
@@ -134,8 +170,117 @@ export const ScenarioSimulator = () => {
     }
   };
 
+  const addChoice = () => {
+    if (!newChoice.text || !newChoice.consequence || !newChoice.impact) {
+      toast({
+        title: "Missing Information",
+        description: "Please fill in all choice fields.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    const choice: ScenarioChoice = {
+      id: `choice_${Date.now()}`,
+      text: newChoice.text!,
+      consequence: newChoice.consequence!,
+      risk: newChoice.risk as "low" | "medium" | "high",
+      impact: newChoice.impact!
+    };
+
+    setNewScenario(prev => ({
+      ...prev,
+      choices: [...(prev.choices || []), choice]
+    }));
+
+    setNewChoice({
+      text: '',
+      consequence: '',
+      risk: 'low',
+      impact: ''
+    });
+
+    toast({
+      title: "Choice Added",
+      description: "Choice has been added to the scenario.",
+    });
+  };
+
+  const removeChoice = (choiceId: string) => {
+    setNewScenario(prev => ({
+      ...prev,
+      choices: prev.choices?.filter(c => c.id !== choiceId) || []
+    }));
+  };
+
+  const saveScenario = () => {
+    if (!newScenario.title || !newScenario.description || !newScenario.situation || !newScenario.choices?.length) {
+      toast({
+        title: "Missing Information",
+        description: "Please fill in all required fields and add at least one choice.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    const scenarioId = editingScenario || `custom_${Date.now()}`;
+    const scenario: Scenario = {
+      id: scenarioId,
+      title: newScenario.title,
+      description: newScenario.description,
+      situation: newScenario.situation,
+      choices: newScenario.choices
+    };
+
+    setCustomScenarios(prev => ({
+      ...prev,
+      [scenarioId]: scenario
+    }));
+
+    setNewScenario({
+      title: '',
+      description: '',
+      situation: '',
+      choices: []
+    });
+    setEditingScenario(null);
+    setIsCreatingScenario(false);
+
+    toast({
+      title: "Scenario Saved",
+      description: "Your custom scenario has been saved successfully.",
+    });
+  };
+
+  const deleteScenario = (scenarioId: string) => {
+    setCustomScenarios(prev => {
+      const newScenarios = { ...prev };
+      delete newScenarios[scenarioId];
+      return newScenarios;
+    });
+
+    if (currentScenario === scenarioId) {
+      setCurrentScenario("employment");
+      resetScenario();
+    }
+
+    toast({
+      title: "Scenario Deleted",
+      description: "The scenario has been deleted.",
+    });
+  };
+
+  const editScenario = (scenarioId: string) => {
+    const scenario = customScenarios[scenarioId];
+    if (scenario) {
+      setNewScenario(scenario);
+      setEditingScenario(scenarioId);
+      setIsCreatingScenario(true);
+    }
+  };
+
   return (
-    <section className="py-20 bg-background">
+    <section id="simulator" className="py-20 bg-background">
       <div className="max-w-6xl mx-auto px-6">
         <div className="text-center mb-12 animate-fade-in">
           <h2 className="legal-heading text-4xl md:text-5xl mb-6">
@@ -147,8 +292,8 @@ export const ScenarioSimulator = () => {
         </div>
 
         {/* Scenario Selection */}
-        <div className="flex justify-center mb-8">
-          <div className="flex gap-2">
+        <div className="flex flex-col items-center mb-8">
+          <div className="flex flex-wrap gap-2 justify-center mb-4">
             <Button
               variant={currentScenario === "employment" ? "legal" : "outline"}
               onClick={() => {
@@ -167,7 +312,187 @@ export const ScenarioSimulator = () => {
             >
               Data Privacy
             </Button>
+            {Object.values(customScenarios).map((scenario) => (
+              <Button
+                key={scenario.id}
+                variant={currentScenario === scenario.id ? "legal" : "outline"}
+                onClick={() => {
+                  setCurrentScenario(scenario.id);
+                  resetScenario();
+                }}
+                className="relative group"
+              >
+                {scenario.title}
+                <div className="absolute -top-1 -right-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                  <Button
+                    size="sm"
+                    variant="destructive"
+                    className="h-6 w-6 p-0"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      deleteScenario(scenario.id);
+                    }}
+                  >
+                    <Trash2 className="h-3 w-3" />
+                  </Button>
+                </div>
+              </Button>
+            ))}
           </div>
+          
+          <Dialog open={isCreatingScenario} onOpenChange={setIsCreatingScenario}>
+            <DialogTrigger asChild>
+              <Button variant="outline" className="gap-2">
+                <Plus className="w-4 h-4" />
+                Create Custom Scenario
+              </Button>
+            </DialogTrigger>
+            <DialogContent className="max-w-4xl max-h-[80vh] overflow-y-auto">
+              <DialogHeader>
+                <DialogTitle>
+                  {editingScenario ? 'Edit Scenario' : 'Create Custom Scenario'}
+                </DialogTitle>
+                <DialogDescription>
+                  Create your own legal scenario with multiple choice options and consequences.
+                </DialogDescription>
+              </DialogHeader>
+              
+              <div className="space-y-6">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="title">Scenario Title *</Label>
+                    <Input
+                      id="title"
+                      value={newScenario.title || ''}
+                      onChange={(e) => setNewScenario(prev => ({ ...prev, title: e.target.value }))}
+                      placeholder="e.g., Contract Dispute Resolution"
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="description">Description *</Label>
+                    <Input
+                      id="description"
+                      value={newScenario.description || ''}
+                      onChange={(e) => setNewScenario(prev => ({ ...prev, description: e.target.value }))}
+                      placeholder="Brief description of the scenario"
+                    />
+                  </div>
+                </div>
+                
+                <div className="space-y-2">
+                  <Label htmlFor="situation">Situation Details *</Label>
+                  <Textarea
+                    id="situation"
+                    value={newScenario.situation || ''}
+                    onChange={(e) => setNewScenario(prev => ({ ...prev, situation: e.target.value }))}
+                    placeholder="Describe the legal situation in detail..."
+                    rows={4}
+                  />
+                </div>
+                
+                <div className="space-y-4">
+                  <h3 className="text-lg font-semibold">Add Choices</h3>
+                  
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                      <Label htmlFor="choice-text">Choice Text *</Label>
+                      <Input
+                        id="choice-text"
+                        value={newChoice.text || ''}
+                        onChange={(e) => setNewChoice(prev => ({ ...prev, text: e.target.value }))}
+                        placeholder="What action would you take?"
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="choice-risk">Risk Level</Label>
+                      <select
+                        id="choice-risk"
+                        value={newChoice.risk || 'low'}
+                        onChange={(e) => setNewChoice(prev => ({ ...prev, risk: e.target.value as "low" | "medium" | "high" }))}
+                        className="w-full p-2 border rounded-md"
+                      >
+                        <option value="low">Low Risk</option>
+                        <option value="medium">Medium Risk</option>
+                        <option value="high">High Risk</option>
+                      </select>
+                    </div>
+                  </div>
+                  
+                  <div className="space-y-2">
+                    <Label htmlFor="choice-consequence">Consequence *</Label>
+                    <Textarea
+                      id="choice-consequence"
+                      value={newChoice.consequence || ''}
+                      onChange={(e) => setNewChoice(prev => ({ ...prev, consequence: e.target.value }))}
+                      placeholder="What happens as a result of this choice?"
+                      rows={2}
+                    />
+                  </div>
+                  
+                  <div className="space-y-2">
+                    <Label htmlFor="choice-impact">Expected Impact *</Label>
+                    <Input
+                      id="choice-impact"
+                      value={newChoice.impact || ''}
+                      onChange={(e) => setNewChoice(prev => ({ ...prev, impact: e.target.value }))}
+                      placeholder="e.g., Costs $500-1000, takes 2-4 weeks"
+                    />
+                  </div>
+                  
+                  <Button onClick={addChoice} className="w-full">
+                    Add Choice
+                  </Button>
+                </div>
+                
+                {newScenario.choices && newScenario.choices.length > 0 && (
+                  <div className="space-y-2">
+                    <h4 className="font-medium">Current Choices:</h4>
+                    <div className="space-y-2">
+                      {newScenario.choices.map((choice, index) => (
+                        <div key={choice.id} className="p-3 border rounded-lg flex justify-between items-start">
+                          <div className="flex-1">
+                            <p className="font-medium">{choice.text}</p>
+                            <p className="text-sm text-muted-foreground">{choice.consequence}</p>
+                            <Badge variant={getRiskColor(choice.risk)} className="mt-1">
+                              {choice.risk.toUpperCase()} RISK
+                            </Badge>
+                          </div>
+                          <Button
+                            size="sm"
+                            variant="destructive"
+                            onClick={() => removeChoice(choice.id)}
+                          >
+                            <Trash2 className="h-4 w-4" />
+                          </Button>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+                
+                <div className="flex justify-end gap-2">
+                  <Button
+                    variant="outline"
+                    onClick={() => {
+                      setIsCreatingScenario(false);
+                      setEditingScenario(null);
+                      setNewScenario({
+                        title: '',
+                        description: '',
+                        situation: '',
+                        choices: []
+                      });
+                    }}
+                  >
+                    Cancel
+                  </Button>
+                  <Button onClick={saveScenario}>
+                    {editingScenario ? 'Update Scenario' : 'Save Scenario'}
+                  </Button>
+                </div>
+              </div>
+            </DialogContent>
+          </Dialog>
         </div>
 
         <div className="grid lg:grid-cols-2 gap-8">

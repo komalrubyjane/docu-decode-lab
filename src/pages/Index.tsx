@@ -16,7 +16,7 @@ const Index = () => {
         <HeroSection />
         <FeatureSection />
         <DocumentUpload onAnalysisComplete={setCurrentAnalysisId} />
-        <DocumentViewer analysisId={currentAnalysisId} />
+        <DocumentViewer key={currentAnalysisId} analysisId={currentAnalysisId} />
         <ScenarioSimulator />
       
       {/* Footer */}
