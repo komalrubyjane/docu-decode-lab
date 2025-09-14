@@ -1,6 +1,6 @@
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { FileText, Search, Lightbulb, GitBranch, Users, Award } from "lucide-react";
+import { FileText, Search, Lightbulb, GitBranch, Users, Award, ArrowRight } from "lucide-react";
 import analyzeIcon from "@/assets/analyze-icon.png";
 import learnIcon from "@/assets/learn-icon.png";
 import simulateIcon from "@/assets/simulate-icon.png";
@@ -28,7 +28,7 @@ export const FeatureSection = () => {
   ];
 
   return (
-    <section className="py-20 bg-muted">
+    <section id="features" className="py-20 bg-muted">
       <div className="max-w-7xl mx-auto px-6">
         <div className="text-center mb-16 animate-fade-in">
           <h2 className="legal-heading text-4xl md:text-5xl mb-6">
@@ -61,8 +61,24 @@ export const FeatureSection = () => {
                     </li>
                   ))}
                 </ul>
-                <Button variant="legal" className="w-full mt-6">
+                <Button 
+                  variant="legal" 
+                  className="w-full group"
+                  onClick={() => {
+                    if (index === 0) {
+                      // Navigate to document upload
+                      document.getElementById('upload')?.scrollIntoView({ behavior: 'smooth' });
+                    } else if (index === 1) {
+                      // Navigate to scenario simulator for learning
+                      document.getElementById('simulator')?.scrollIntoView({ behavior: 'smooth' });
+                    } else {
+                      // Navigate to scenario simulator
+                      document.getElementById('simulator')?.scrollIntoView({ behavior: 'smooth' });
+                    }
+                  }}
+                >
                   Explore Feature
+                  <ArrowRight className="ml-2 w-4 h-4 group-hover:translate-x-1 transition-transform" />
                 </Button>
               </CardContent>
             </Card>

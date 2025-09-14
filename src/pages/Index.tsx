@@ -31,10 +31,10 @@ const Index = () => {
             Making legal literacy accessible, engaging, and practical for everyone.
           </p>
           <div className="flex justify-center space-x-6 text-sm">
-            <a href="#" className="hover:text-secondary smooth-transition">Privacy Policy</a>
-            <a href="#" className="hover:text-secondary smooth-transition">Terms of Service</a>
-            <a href="#" className="hover:text-secondary smooth-transition">Contact</a>
-            <a href="#" className="hover:text-secondary smooth-transition">About</a>
+            <a href="#" className="hover:text-secondary smooth-transition hover:scale-105 inline-block">Privacy Policy</a>
+            <a href="#" className="hover:text-secondary smooth-transition hover:scale-105 inline-block">Terms of Service</a>
+            <a href="#contact" className="hover:text-secondary smooth-transition hover:scale-105 inline-block">Contact</a>
+            <a href="#about" className="hover:text-secondary smooth-transition hover:scale-105 inline-block">About</a>
           </div>
           <div className="mt-6 pt-6 border-t border-primary-foreground/20">
             <p className="clause-text text-primary-foreground/60 text-xs">

@@ -252,7 +252,16 @@ export const DocumentUpload = ({ onAnalysisComplete }: DocumentUploadProps) => {
                       <Button 
                         variant="ghost" 
                         size="sm" 
-                        className="opacity-0 group-hover:opacity-100 smooth-transition"
+                        className="opacity-0 group-hover:opacity-100 smooth-transition hover:bg-secondary/20"
+                        onClick={() => {
+                          // For demo purposes, create a sample document
+                          const sampleContent = `Sample ${doc.type}: ${doc.name}\n\nThis is a sample legal document for demonstration purposes. It contains standard clauses and terms that would typically be found in a ${doc.type.toLowerCase()}.\n\nKey provisions include:\n- Standard terms and conditions\n- Liability limitations\n- Termination clauses\n- Dispute resolution procedures`;
+                          
+                          // Create a mock file for demonstration
+                          const blob = new Blob([sampleContent], { type: 'text/plain' });
+                          const file = new File([blob], `${doc.name}.txt`, { type: 'text/plain' });
+                          setUploadedFile(file);
+                        }}
                       >
                         Try Now
                       </Button>

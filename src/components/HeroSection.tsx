@@ -31,11 +31,27 @@ export const HeroSection = () => {
           </h2>
           
           <div className="flex flex-col sm:flex-row gap-4 justify-center mb-12 animate-scale-in">
-            <Button variant="hero" size="lg" className="text-lg">
-              Start Learning <ArrowRight className="ml-2" />
+            <Button 
+              variant="hero" 
+              size="lg" 
+              className="text-lg group"
+              onClick={() => {
+                document.getElementById('features')?.scrollIntoView({ behavior: 'smooth' });
+              }}
+            >
+              Start Learning 
+              <ArrowRight className="ml-2 group-hover:translate-x-1 transition-transform" />
             </Button>
-            <Button variant="accent" size="lg" className="text-lg">
-              Upload Document <BookOpen className="ml-2" />
+            <Button 
+              variant="accent" 
+              size="lg" 
+              className="text-lg group"
+              onClick={() => {
+                document.getElementById('upload')?.scrollIntoView({ behavior: 'smooth' });
+              }}
+            >
+              Upload Document 
+              <BookOpen className="ml-2 group-hover:scale-110 transition-transform" />
             </Button>
           </div>
         </div>

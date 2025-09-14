@@ -291,11 +291,30 @@ export const ScenarioSimulator = () => {
 
                         <div className="space-y-2">
                           <h4 className="legal-heading text-sm">Learn More:</h4>
-                          <Button variant="clause" size="sm" className="w-full">
+                          <Button 
+                            variant="clause" 
+                            size="sm" 
+                            className="w-full group"
+                            onClick={() => {
+                              // Open a modal or navigate to educational content
+                              window.open('https://www.nolo.com/legal-encyclopedia', '_blank');
+                            }}
+                          >
                             Understanding Your Rights
+                            <ArrowRight className="ml-2 w-3 h-3 group-hover:translate-x-1 transition-transform" />
                           </Button>
-                          <Button variant="outline" size="sm" className="w-full">
+                          <Button 
+                            variant="outline" 
+                            size="sm" 
+                            className="w-full group"
+                            onClick={() => {
+                              // Scroll to other scenarios or show related content
+                              resetScenario();
+                              setCurrentScenario(currentScenario === 'employment' ? 'privacy' : 'employment');
+                            }}
+                          >
                             Similar Case Studies
+                            <ArrowRight className="ml-2 w-3 h-3 group-hover:translate-x-1 transition-transform" />
                           </Button>
                         </div>
                       </div>
